@@ -11,10 +11,10 @@ Start the bot, reply to an audio with !play to play it
 in the current voice chat
 
 Commands:
-!join_vc   join the current voice chat
+!join   join the current voice chat
 !play      reply to an audio to play it in current voice chat
-!list_vc   list joined voice chats
-!leave_vc  leave the current voice chat
+!list   list joined voice chats
+!leave  leave the current voice chat
 !stop      stop
 !replay    play the track from beginning
 !mute      mute the userbot in the current voice chat
@@ -28,6 +28,7 @@ from pyrogram.methods.messages.download_media import DEFAULT_DOWNLOAD_DIR
 from pyrogram.errors.exceptions.bad_request_400 import ChatAdminRequired
 from pyrogram.errors.exceptions.flood_420 import FloodWait
 from pytgcalls import GroupCall
+from youtube import download
 import ffmpeg
 
 VOICE_CHATS = {}
@@ -36,7 +37,7 @@ VOICE_CHATS = {}
 @Client.on_message(filters.text
                    & filters.outgoing
                    & ~filters.edited
-                   & filters.regex("^!join_vc$"))
+                   & filters.regex("^!join$"))
 async def join_voice_chat(client, message: Message):
     input_filename = os.path.join(client.workdir, DEFAULT_DOWNLOAD_DIR,
                                   "input.raw")
@@ -57,7 +58,7 @@ async def join_voice_chat(client, message: Message):
 @Client.on_message(filters.text
                    & filters.outgoing
                    & ~filters.edited
-                   & filters.regex("^!leave_vc$"))
+                   & filters.regex("^!leave$"))
 async def leave_voice_chat(client, message: Message):
     chat_id = message.chat.id
     group_call = VOICE_CHATS[chat_id]
@@ -69,7 +70,7 @@ async def leave_voice_chat(client, message: Message):
 @Client.on_message(filters.text
                    & filters.outgoing
                    & ~filters.edited
-                   & filters.regex("^!list_vc$"))
+                   & filters.regex("^!list$"))
 async def list_voice_chat(client, message: Message):
     if not VOICE_CHATS:
         await update_userbot_message(
@@ -138,7 +139,13 @@ async def play_track(client, message: Message):
     audio = message.reply_to_message.audio
     status = "\n- Downloading audio file..."
     await update_userbot_message(message, message.text, status)
-    audio_original = await message.reply_to_message.download()
+    if message.reply_to_message:
+      audio_original = await message.reply_to_message.download()
+    else:
+      if message.entities:
+        text = message.text
+        k = os.system(f'youtube-dl --extract-audio -o ok.mp3 "{text}"')
+      audio_original = "ok.opus"
     status += "\n- Transcoding..."
     await update_userbot_message(message, message.text, status)
     ffmpeg.input(audio_original).output(
